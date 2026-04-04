@@ -1,13 +1,8 @@
-//go:build integration
-// +build integration
-
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
@@ -19,15 +14,21 @@ import (
 )
 
 const (
-	testImage         = "nginx:latest"
-	dindImage         = "docker:27-dind"
+	// nginx:1.27 - using SHA for reproducibility
+	testImage = "nginx@sha256:2d1afc5cb0cc9a9f4920a1e71df2e3e53fe5db06fd1e7787540d25905e423dce"
+	// docker:27-dind - using SHA for reproducibility
+	dindImage         = "docker@sha256:d2dc198f7d83f27f3a60841332cf3f5a4a356f9c296d28a2736dcab3a505ea1a"
 	testNetwork       = "mdns-test-network"
 	testContainerName = "mdns-test-web"
 )
 
 func TestIntegration_GetHostnamesFromRealDocker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	req := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Start Docker-in-Docker container
 	dindContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -92,8 +93,12 @@ func TestIntegration_GetHostnamesFromRealDocker(t *testing.T) {
 }
 
 func TestIntegration_GetHostnames_MultipleContainers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	req := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Start DinD
 	dindContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -177,8 +182,12 @@ func TestIntegration_GetHostnames_MultipleContainers(t *testing.T) {
 }
 
 func TestIntegration_GetHostnames_ContainerLifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	req := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Start DinD
 	dindContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -278,14 +287,4 @@ func TestIntegration_GetIPFromEnvOrDefault(t *testing.T) {
 	ip, err = getIPFromEnvOrDefault("")
 	req.NoError(err)
 	req.NotEmpty(ip)
-}
-
-func TestMain(m *testing.M) {
-	// Check if integration tests should run
-	if os.Getenv("INTEGRATION_TEST") != "1" {
-		fmt.Println("Skipping integration tests. Set INTEGRATION_TEST=1 to run.")
-		os.Exit(0)
-	}
-
-	os.Exit(m.Run())
 }

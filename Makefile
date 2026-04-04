@@ -23,11 +23,11 @@ check: lint vet test
 
 # Integration tests with testcontainers (requires Docker)
 integration-test:
-	INTEGRATION_TEST=1 go test -timeout=5m -tags=integration -v ./...
+	go test -timeout=5m -v ./...
 
 # Quick integration test (single run)
 integration-test-quick:
-	INTEGRATION_TEST=1 go test -timeout=5m -tags=integration -run TestIntegration_GetHostnamesFromRealDocker -v ./...
+	go test -timeout=5m -run TestIntegration_GetHostnamesFromRealDocker -v ./...
 
 mocks_test.go: types.go
 	go tool go.uber.org/mock/mockgen -source=types.go -destination=mocks_test.go -package=main
