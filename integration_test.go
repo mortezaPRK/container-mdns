@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	// nginx:1.27 - using SHA for reproducibility
-	testImage = "nginx@sha256:2d1afc5cb0cc9a9f4920a1e71df2e3e53fe5db06fd1e7787540d25905e423dce"
-	// docker:27-dind - using SHA for reproducibility
-	dindImage         = "docker@sha256:d2dc198f7d83f27f3a60841332cf3f5a4a356f9c296d28a2736dcab3a505ea1a"
+	// nginx:latest - using digest for reproducibility
+	testImage = "nginx@sha256:7150b3a39203cb5bee612ff4a9d18774f8c7caf6399d6e8985e97e28eb751c18"
+	// docker:27-dind - using digest for reproducibility
+	dindImage         = "docker@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce"
 	testNetwork       = "mdns-test-network"
 	testContainerName = "mdns-test-web"
 )
