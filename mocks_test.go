@@ -11,6 +11,7 @@ package main
 
 import (
 	context "context"
+	net "net"
 	reflect "reflect"
 
 	container "github.com/docker/docker/api/types/container"
@@ -94,4 +95,137 @@ func (m *MockEventProducer) Events(ctx context.Context, options events.ListOptio
 func (mr *MockEventProducerMockRecorder) Events(ctx, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Events", reflect.TypeOf((*MockEventProducer)(nil).Events), ctx, options)
+}
+
+// MockDockerClient is a mock of DockerClient interface.
+type MockDockerClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockDockerClientMockRecorder
+	isgomock struct{}
+}
+
+// MockDockerClientMockRecorder is the mock recorder for MockDockerClient.
+type MockDockerClientMockRecorder struct {
+	mock *MockDockerClient
+}
+
+// NewMockDockerClient creates a new mock instance.
+func NewMockDockerClient(ctrl *gomock.Controller) *MockDockerClient {
+	mock := &MockDockerClient{ctrl: ctrl}
+	mock.recorder = &MockDockerClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDockerClient) EXPECT() *MockDockerClientMockRecorder {
+	return m.recorder
+}
+
+// ContainerList mocks base method.
+func (m *MockDockerClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ContainerList", ctx, options)
+	ret0, _ := ret[0].([]container.Summary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ContainerList indicates an expected call of ContainerList.
+func (mr *MockDockerClientMockRecorder) ContainerList(ctx, options any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerList", reflect.TypeOf((*MockDockerClient)(nil).ContainerList), ctx, options)
+}
+
+// Events mocks base method.
+func (m *MockDockerClient) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Events", ctx, options)
+	ret0, _ := ret[0].(<-chan events.Message)
+	ret1, _ := ret[1].(<-chan error)
+	return ret0, ret1
+}
+
+// Events indicates an expected call of Events.
+func (mr *MockDockerClientMockRecorder) Events(ctx, options any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Events", reflect.TypeOf((*MockDockerClient)(nil).Events), ctx, options)
+}
+
+// MockMDNSPublisher is a mock of MDNSPublisher interface.
+type MockMDNSPublisher struct {
+	ctrl     *gomock.Controller
+	recorder *MockMDNSPublisherMockRecorder
+	isgomock struct{}
+}
+
+// MockMDNSPublisherMockRecorder is the mock recorder for MockMDNSPublisher.
+type MockMDNSPublisherMockRecorder struct {
+	mock *MockMDNSPublisher
+}
+
+// NewMockMDNSPublisher creates a new mock instance.
+func NewMockMDNSPublisher(ctrl *gomock.Controller) *MockMDNSPublisher {
+	mock := &MockMDNSPublisher{ctrl: ctrl}
+	mock.recorder = &MockMDNSPublisherMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMDNSPublisher) EXPECT() *MockMDNSPublisherMockRecorder {
+	return m.recorder
+}
+
+// Start mocks base method.
+func (m *MockMDNSPublisher) Start(ip net.IP, hostnames []string) (*MultiHostZone, func() error, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Start", ip, hostnames)
+	ret0, _ := ret[0].(*MultiHostZone)
+	ret1, _ := ret[1].(func() error)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Start indicates an expected call of Start.
+func (mr *MockMDNSPublisherMockRecorder) Start(ip, hostnames any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockMDNSPublisher)(nil).Start), ip, hostnames)
+}
+
+// MockHostnameResolver is a mock of HostnameResolver interface.
+type MockHostnameResolver struct {
+	ctrl     *gomock.Controller
+	recorder *MockHostnameResolverMockRecorder
+	isgomock struct{}
+}
+
+// MockHostnameResolverMockRecorder is the mock recorder for MockHostnameResolver.
+type MockHostnameResolverMockRecorder struct {
+	mock *MockHostnameResolver
+}
+
+// NewMockHostnameResolver creates a new mock instance.
+func NewMockHostnameResolver(ctrl *gomock.Controller) *MockHostnameResolver {
+	mock := &MockHostnameResolver{ctrl: ctrl}
+	mock.recorder = &MockHostnameResolverMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockHostnameResolver) EXPECT() *MockHostnameResolverMockRecorder {
+	return m.recorder
+}
+
+// Hostname mocks base method.
+func (m *MockHostnameResolver) Hostname() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Hostname")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Hostname indicates an expected call of Hostname.
+func (mr *MockHostnameResolverMockRecorder) Hostname() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hostname", reflect.TypeOf((*MockHostnameResolver)(nil).Hostname))
 }

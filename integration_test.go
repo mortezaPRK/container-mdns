@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -14,8 +16,8 @@ import (
 )
 
 const (
-	// nginx:latest - using digest for reproducibility
-	testImage = "nginx@sha256:7150b3a39203cb5bee612ff4a9d18774f8c7caf6399d6e8985e97e28eb751c18"
+	// nginx:alpine - using specific tag for reproducibility
+	testImage = "nginx:alpine"
 	// docker:27-dind - using digest for reproducibility
 	dindImage         = "docker@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce"
 	testNetwork       = "mdns-test-network"
@@ -36,7 +38,11 @@ func TestIntegration_GetHostnamesFromRealDocker(t *testing.T) {
 			Image:        dindImage,
 			Privileged:   true,
 			ExposedPorts: []string{"2375/tcp"},
-			WaitingFor:   wait.ForLog("API listen on [::]:2375").WithOccurrence(1),
+			WaitingFor: wait.ForLog("Daemon has completed initialization").WithOccurrence(1).WithStartupTimeout(120 * time.Second),
+			Env: map[string]string{
+				"DOCKER_TLS_CERTDIR": "", // Disable TLS
+			},
+			Cmd: []string{"--tls=false"}, // Disable TLS on port 2375
 			Tmpfs: map[string]string{
 				"/var/lib/docker": "",
 			},
@@ -64,26 +70,49 @@ func TestIntegration_GetHostnamesFromRealDocker(t *testing.T) {
 	// Pull test image in DinD
 	reader, err := cli.ImagePull(ctx, testImage, image.PullOptions{})
 	req.NoError(err)
-	_ = reader.Close()
-
-	// Create test container with Traefik labels
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: testImage,
-		Labels: map[string]string{
-			"traefik.http.routers.web1.rule": "Host((web1.local))",
-			"traefik.http.routers.web2.rule": "Host((web2.local))",
-			"other.label":                    "should be ignored",
-		},
-	}, nil, nil, nil, testContainerName)
-	req.NoError(err)
-
-	// Start the container
-	req.NoError(cli.ContainerStart(ctx, resp.ID, container.StartOptions{}))
-
-	// Clean up container
 	defer func() {
-		req.NoError(cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true}))
+		_ = reader.Close()
 	}()
+	// Consume the response to ensure pull completes
+	_, err = io.Copy(io.Discard, reader)
+	req.NoError(err, "image pull failed")
+
+	// Create two test containers, each with one Traefik label
+	containers := []struct {
+		name   string
+		labels map[string]string
+	}{
+		{
+			name: "mdns-test-web1",
+			labels: map[string]string{
+				"traefik.http.routers.web1.rule": "Host((web1.local))",
+			},
+		},
+		{
+			name: "mdns-test-web2",
+			labels: map[string]string{
+				"traefik.http.routers.web2.rule": "Host((web2.local))",
+				"other.label":                    "should be ignored",
+			},
+		},
+	}
+
+	var containerIDs []string
+	defer func() {
+		for _, id := range containerIDs {
+			req.NoError(cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: true}))
+		}
+	}()
+
+	for _, c := range containers {
+		resp, err := cli.ContainerCreate(ctx, &container.Config{
+			Image:  testImage,
+			Labels: c.labels,
+		}, nil, nil, nil, c.name)
+		req.NoError(err)
+		containerIDs = append(containerIDs, resp.ID)
+		req.NoError(cli.ContainerStart(ctx, resp.ID, container.StartOptions{}))
+	}
 
 	// Test getHostnames
 	hostnames, err := getHostnames(ctx, cli)
@@ -106,7 +135,11 @@ func TestIntegration_GetHostnames_MultipleContainers(t *testing.T) {
 			Image:        dindImage,
 			Privileged:   true,
 			ExposedPorts: []string{"2375/tcp"},
-			WaitingFor:   wait.ForLog("API listen on [::]:2375").WithOccurrence(1),
+			WaitingFor: wait.ForLog("Daemon has completed initialization").WithOccurrence(1).WithStartupTimeout(120 * time.Second),
+			Env: map[string]string{
+				"DOCKER_TLS_CERTDIR": "", // Disable TLS
+			},
+			Cmd: []string{"--tls=false"}, // Disable TLS on port 2375
 			Tmpfs: map[string]string{
 				"/var/lib/docker": "",
 			},
@@ -114,10 +147,14 @@ func TestIntegration_GetHostnames_MultipleContainers(t *testing.T) {
 		Started: true,
 	})
 	req.NoError(err)
-	defer dindContainer.Terminate(ctx)
+	defer func() { _ = dindContainer.Terminate(ctx) }()
 
-	host, _ := dindContainer.Host(ctx)
-	port, _ := dindContainer.MappedPort(ctx, "2375")
+	host, err := dindContainer.Host(ctx)
+	req.NoError(err)
+
+	port, err := dindContainer.MappedPort(ctx, "2375")
+	req.NoError(err)
+
 	dindEndpoint := fmt.Sprintf("tcp://%s:%s", host, port.Port())
 
 	cli, err := client.NewClientWithOpts(client.WithHost(dindEndpoint), client.WithAPIVersionNegotiation())
@@ -126,7 +163,12 @@ func TestIntegration_GetHostnames_MultipleContainers(t *testing.T) {
 	// Pull image
 	reader, err := cli.ImagePull(ctx, testImage, image.PullOptions{})
 	req.NoError(err)
-	_ = reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
+	// Consume the response to ensure pull completes
+	_, err = io.Copy(io.Discard, reader)
+	req.NoError(err, "image pull failed")
 
 	// Create multiple containers with different labels
 	containers := []struct {
@@ -195,7 +237,11 @@ func TestIntegration_GetHostnames_ContainerLifecycle(t *testing.T) {
 			Image:        dindImage,
 			Privileged:   true,
 			ExposedPorts: []string{"2375/tcp"},
-			WaitingFor:   wait.ForLog("API listen on [::]:2375").WithOccurrence(1),
+			WaitingFor: wait.ForLog("Daemon has completed initialization").WithOccurrence(1).WithStartupTimeout(120 * time.Second),
+			Env: map[string]string{
+				"DOCKER_TLS_CERTDIR": "", // Disable TLS
+			},
+			Cmd: []string{"--tls=false"}, // Disable TLS on port 2375
 			Tmpfs: map[string]string{
 				"/var/lib/docker": "",
 			},
@@ -203,10 +249,14 @@ func TestIntegration_GetHostnames_ContainerLifecycle(t *testing.T) {
 		Started: true,
 	})
 	req.NoError(err)
-	defer dindContainer.Terminate(ctx)
+	defer func() { _ = dindContainer.Terminate(ctx) }()
 
-	host, _ := dindContainer.Host(ctx)
-	port, _ := dindContainer.MappedPort(ctx, "2375")
+	host, err := dindContainer.Host(ctx)
+	req.NoError(err)
+
+	port, err := dindContainer.MappedPort(ctx, "2375")
+	req.NoError(err)
+
 	dindEndpoint := fmt.Sprintf("tcp://%s:%s", host, port.Port())
 
 	cli, err := client.NewClientWithOpts(client.WithHost(dindEndpoint), client.WithAPIVersionNegotiation())
@@ -215,7 +265,12 @@ func TestIntegration_GetHostnames_ContainerLifecycle(t *testing.T) {
 	// Pull image
 	reader, err := cli.ImagePull(ctx, testImage, image.PullOptions{})
 	req.NoError(err)
-	_ = reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
+	// Consume the response to ensure pull completes
+	_, err = io.Copy(io.Discard, reader)
+	req.NoError(err, "image pull failed")
 
 	// Initial state - no containers
 	hostnames, err := getHostnames(ctx, cli)

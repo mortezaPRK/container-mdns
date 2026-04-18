@@ -11,7 +11,7 @@ lint:
 	golangci-lint run ./...
 
 test: mocks_test.go
-	go test -timeout=5s -shuffle=on -race -coverprofile=coverage.out ./...
+	go test -short -timeout=5s -shuffle=on -race -coverprofile=coverage.out ./...
 
 coverage:
 	go tool cover -html=coverage.out
@@ -21,7 +21,7 @@ vet:
 
 check: lint vet test
 
-# Integration tests with testcontainers (requires Docker)
+# Integration tests with testcontainers
 integration-test:
 	go test -timeout=5m -v ./...
 
@@ -30,7 +30,7 @@ integration-test-quick:
 	go test -timeout=5m -run TestIntegration_GetHostnamesFromRealDocker -v ./...
 
 mocks_test.go: types.go
-	go tool go.uber.org/mock/mockgen -source=types.go -destination=mocks_test.go -package=main
+	go run go.uber.org/mock/mockgen@latest -source=types.go -destination=mocks_test.go -package=main
 
 clean:
 	rm -f $(BINARY) 
