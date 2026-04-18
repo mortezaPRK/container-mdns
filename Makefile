@@ -30,7 +30,7 @@ integration-test-quick:
 	go test -timeout=5m -run TestIntegration_GetHostnamesFromRealDocker -v ./...
 
 mocks_test.go: types.go
-	go run go.uber.org/mock/mockgen@latest -source=types.go -destination=mocks_test.go -package=main
+	go tool go.uber.org/mock/mockgen -source=types.go -destination=mocks_test.go -package=main
 
 clean:
 	rm -f $(BINARY) 

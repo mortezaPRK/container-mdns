@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	// nginx:alpine - using specific tag for reproducibility
-	testImage = "nginx:alpine"
-	// docker:27-dind - using digest for reproducibility
+	// nginx:alpine - using digest for reproducibility
+	testImage = "nginx@sha256:3bcf852aed06467cf075c6105892e4d5a6ebbbafa0ce22d35062db9e90ddef4c"
+	// docker:27-dind - using digest for reproducibility (critical infra)
 	dindImage         = "docker@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce"
 	testNetwork       = "mdns-test-network"
 	testContainerName = "mdns-test-web"
