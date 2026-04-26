@@ -9,7 +9,7 @@ func getIPFromEnvOrDefault(defaultIP string) (string, error) {
 		return defaultIP, nil
 	}
 
-	if ip := os.Getenv("HOSTNAME_IP"); ip != "" {
+	if ip := os.Getenv("HOSTNAME_IPs"); ip != "" {
 		return ip, nil
 	}
 
